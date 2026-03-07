@@ -200,7 +200,7 @@ describe("resolveSessionDeliveryTarget", () => {
     expect(resolved.threadId).toBe(999);
   });
 
-  it("does not inherit lastThreadId in heartbeat mode", () => {
+  it("does not inherit non-telegram lastThreadId in heartbeat mode", () => {
     const resolved = resolveSessionDeliveryTarget({
       entry: {
         sessionId: "sess-heartbeat-thread",
@@ -214,6 +214,26 @@ describe("resolveSessionDeliveryTarget", () => {
     });
 
     expect(resolved.threadId).toBeUndefined();
+  });
+
+  it("preserves telegram forum topic threadId in heartbeat mode", () => {
+    const resolved = resolveSessionDeliveryTarget({
+      entry: {
+        sessionId: "sess-heartbeat-telegram-topic",
+        updatedAt: 1,
+        deliveryContext: {
+          channel: "telegram",
+          to: "-100123",
+          threadId: 3348,
+        },
+      },
+      requestedChannel: "last",
+      mode: "heartbeat",
+    });
+
+    expect(resolved.channel).toBe("telegram");
+    expect(resolved.to).toBe("-100123");
+    expect(resolved.threadId).toBe(3348);
   });
 
   it("falls back to a provided channel when requested is unsupported", () => {
@@ -409,6 +429,32 @@ describe("resolveSessionDeliveryTarget", () => {
 
     expect(resolved.channel).toBe("telegram");
     expect(resolved.to).toBe("-1001234567890");
+  });
+
+  it("keeps heartbeat delivery in the current Telegram forum topic", () => {
+    const cfg: OpenClawConfig = {};
+    const resolved = resolveHeartbeatDeliveryTarget({
+      cfg,
+      entry: {
+        sessionId: "sess-heartbeat-telegram-topic-delivery",
+        updatedAt: 1,
+        lastChannel: "telegram",
+        lastTo: "-1003607560565",
+        lastThreadId: 3348,
+        deliveryContext: {
+          channel: "telegram",
+          to: "-1003607560565",
+          threadId: 3348,
+        },
+      },
+      heartbeat: {
+        target: "last",
+      },
+    });
+
+    expect(resolved.channel).toBe("telegram");
+    expect(resolved.to).toBe("-1003607560565");
+    expect(resolved.threadId).toBe(3348);
   });
 
   it("allows heartbeat delivery to WhatsApp direct chats by default", () => {

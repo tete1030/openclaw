@@ -148,8 +148,9 @@ export function resolveSessionDeliveryTarget(params: {
 
   const mode = params.mode ?? (explicitTo ? "explicit" : "implicit");
   const accountId = channel && channel === lastChannel ? lastAccountId : undefined;
-  const threadId =
-    mode !== "heartbeat" && channel && channel === lastChannel ? lastThreadId : undefined;
+  const shouldReuseLastThreadId =
+    channel && channel === lastChannel && (mode !== "heartbeat" || channel === "telegram");
+  const threadId = shouldReuseLastThreadId ? lastThreadId : undefined;
 
   const resolvedThreadId = explicitThreadId ?? threadId;
   return {
