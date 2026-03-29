@@ -1193,6 +1193,65 @@ describe("applyExtraParamsToAgent", () => {
     expect(calls[0]?.openaiWsWarmup).toBe(false);
   });
 
+  it("adds LiteLLM session headers for proxied OpenAI responses", () => {
+    const { calls, agent } = createOptionsCaptureAgent();
+
+    applyExtraParamsToAgent(
+      agent,
+      undefined,
+      "openai",
+      "gpt-5",
+      undefined,
+      undefined,
+      undefined,
+      "session-123",
+    );
+
+    const model = {
+      api: "openai-responses",
+      provider: "openai",
+      id: "gpt-5",
+      baseUrl: "https://proxy.example.com/v1",
+    } as Model<"openai-responses">;
+    const context: Context = { messages: [] };
+    void agent.streamFn?.(model, context, { headers: { "X-Custom": "1" } });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.headers).toEqual({
+      "X-Custom": "1",
+      "x-litellm-session-id": "session-123",
+    });
+  });
+
+  it("does not add LiteLLM session headers for direct OpenAI responses", () => {
+    const { calls, agent } = createOptionsCaptureAgent();
+
+    applyExtraParamsToAgent(
+      agent,
+      undefined,
+      "openai",
+      "gpt-5",
+      undefined,
+      undefined,
+      undefined,
+      "session-123",
+    );
+
+    const model = {
+      api: "openai-responses",
+      provider: "openai",
+      id: "gpt-5",
+      baseUrl: "https://api.openai.com/v1",
+    } as Model<"openai-responses">;
+    const context: Context = { messages: [] };
+    void agent.streamFn?.(model, context, { headers: { "X-Custom": "1" } });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.headers).toEqual({
+      "X-Custom": "1",
+    });
+  });
+
   it("lets runtime options override OpenAI default transport", () => {
     const { calls, agent } = createOptionsCaptureAgent();
 

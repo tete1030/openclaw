@@ -9,6 +9,11 @@ type OpenAIReasoningEffort = "low" | "medium" | "high";
 
 const OPENAI_RESPONSES_APIS = new Set(["openai-responses"]);
 const OPENAI_RESPONSES_PROVIDERS = new Set(["openai", "azure-openai", "azure-openai-responses"]);
+const OPENAI_PROXY_APIS = new Set([
+  "openai-completions",
+  "openai-responses",
+  "openai-codex-responses",
+]);
 
 function isDirectOpenAIBaseUrl(baseUrl: unknown): boolean {
   if (typeof baseUrl !== "string" || !baseUrl.trim()) {
@@ -355,5 +360,31 @@ export function createOpenAIDefaultTransportWrapper(baseStreamFn: StreamFn | und
       openaiWsWarmup: typedOptions?.openaiWsWarmup ?? false,
     } as SimpleStreamOptions;
     return underlying(model, context, mergedOptions);
+  };
+}
+
+export function createLiteLLMSessionHeaderWrapper(
+  baseStreamFn: StreamFn | undefined,
+  sessionId: string,
+): StreamFn {
+  const underlying = baseStreamFn ?? streamSimple;
+  return (model, context, options) => {
+    if (
+      typeof model.api !== "string" ||
+      !OPENAI_PROXY_APIS.has(model.api) ||
+      typeof model.baseUrl !== "string" ||
+      !model.baseUrl.trim() ||
+      isDirectOpenAIBaseUrl(model.baseUrl)
+    ) {
+      return underlying(model, context, options);
+    }
+
+    return underlying(model, context, {
+      ...options,
+      headers: {
+        ...options?.headers,
+        "x-litellm-session-id": sessionId,
+      },
+    });
   };
 }

@@ -23,6 +23,7 @@ import {
 } from "./moonshot-stream-wrappers.js";
 import {
   createCodexDefaultTransportWrapper,
+  createLiteLLMSessionHeaderWrapper,
   createOpenAIDefaultTransportWrapper,
   createOpenAIFastModeWrapper,
   createOpenAIResponsesContextManagementWrapper,
@@ -335,6 +336,8 @@ export function applyExtraParamsToAgent(
   extraParamsOverride?: Record<string, unknown>,
   thinkingLevel?: ThinkLevel,
   agentId?: string,
+  sessionId?: string,
+  sessionKey?: string,
 ): void {
   const resolvedExtraParams = resolveExtraParams({
     cfg,
@@ -348,6 +351,10 @@ export function applyExtraParamsToAgent(
   } else if (provider === "openai") {
     // Default OpenAI Responses to WebSocket-first with transparent SSE fallback.
     agent.streamFn = createOpenAIDefaultTransportWrapper(agent.streamFn);
+  }
+  const liteLLMSessionId = sessionId?.trim() || sessionKey?.trim();
+  if (liteLLMSessionId && (provider === "openai" || provider === "openai-codex")) {
+    agent.streamFn = createLiteLLMSessionHeaderWrapper(agent.streamFn, liteLLMSessionId);
   }
   const override =
     extraParamsOverride && Object.keys(extraParamsOverride).length > 0
