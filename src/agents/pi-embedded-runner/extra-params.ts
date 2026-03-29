@@ -29,6 +29,7 @@ import {
   shouldApplySiliconFlowThinkingOffCompat,
 } from "./moonshot-stream-wrappers.js";
 import {
+  createLiteLLMSessionHeaderWrapper,
   createOpenAIAttributionHeadersWrapper,
   createOpenAIDefaultTransportWrapper,
   createOpenAIFastModeWrapper,
@@ -297,6 +298,8 @@ export function applyExtraParamsToAgent(
   extraParamsOverride?: Record<string, unknown>,
   thinkingLevel?: ThinkLevel,
   agentId?: string,
+  sessionId?: string,
+  sessionKey?: string,
   workspaceDir?: string,
 ): { effectiveExtraParams: Record<string, unknown> } {
   const resolvedExtraParams = resolveExtraParams({
@@ -325,6 +328,10 @@ export function applyExtraParamsToAgent(
     if (provider === "openai") {
       // Default OpenAI Responses to WebSocket-first with transparent SSE fallback.
       agent.streamFn = createOpenAIDefaultTransportWrapper(agent.streamFn);
+    }
+    const liteLLMSessionId = sessionId?.trim() || sessionKey?.trim();
+    if (liteLLMSessionId) {
+      agent.streamFn = createLiteLLMSessionHeaderWrapper(agent.streamFn, liteLLMSessionId);
     }
     agent.streamFn = createOpenAIAttributionHeadersWrapper(agent.streamFn);
   }
