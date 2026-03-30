@@ -352,7 +352,7 @@ export function applyExtraParamsToAgent(
     // Default OpenAI Responses to WebSocket-first with transparent SSE fallback.
     agent.streamFn = createOpenAIDefaultTransportWrapper(agent.streamFn);
   }
-  const liteLLMSessionId = sessionId?.trim() || sessionKey?.trim();
+  const liteLLMSessionId = sessionKey?.trim() || sessionId?.trim();
   if (liteLLMSessionId && (provider === "openai" || provider === "openai-codex")) {
     agent.streamFn = createLiteLLMSessionHeaderWrapper(agent.streamFn, liteLLMSessionId);
   }

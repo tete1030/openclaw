@@ -1193,7 +1193,7 @@ describe("applyExtraParamsToAgent", () => {
     expect(calls[0]?.openaiWsWarmup).toBe(false);
   });
 
-  it("adds LiteLLM session headers for proxied OpenAI responses", () => {
+  it("adds LiteLLM session headers from sessionKey for proxied OpenAI responses", () => {
     const { calls, agent } = createOptionsCaptureAgent();
 
     applyExtraParamsToAgent(
@@ -1201,6 +1201,7 @@ describe("applyExtraParamsToAgent", () => {
       undefined,
       "openai",
       "gpt-5",
+      undefined,
       undefined,
       undefined,
       undefined,
@@ -1223,6 +1224,37 @@ describe("applyExtraParamsToAgent", () => {
     });
   });
 
+  it("prefers sessionKey over sessionId for LiteLLM session headers", () => {
+    const { calls, agent } = createOptionsCaptureAgent();
+
+    applyExtraParamsToAgent(
+      agent,
+      undefined,
+      "openai",
+      "gpt-5",
+      undefined,
+      undefined,
+      undefined,
+      "session-id-123",
+      "session-key-456",
+    );
+
+    const model = {
+      api: "openai-responses",
+      provider: "openai",
+      id: "gpt-5",
+      baseUrl: "https://proxy.example.com/v1",
+    } as Model<"openai-responses">;
+    const context: Context = { messages: [] };
+    void agent.streamFn?.(model, context, { headers: { "X-Custom": "1" } });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.headers).toEqual({
+      "X-Custom": "1",
+      "x-litellm-session-id": "session-key-456",
+    });
+  });
+
   it("does not add LiteLLM session headers for direct OpenAI responses", () => {
     const { calls, agent } = createOptionsCaptureAgent();
 
@@ -1231,6 +1263,7 @@ describe("applyExtraParamsToAgent", () => {
       undefined,
       "openai",
       "gpt-5",
+      undefined,
       undefined,
       undefined,
       undefined,
